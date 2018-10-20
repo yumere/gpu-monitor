@@ -38,7 +38,8 @@ class ServerInfo(object):
             if line.startswith("20"):
                 stat_list = line.split(", ")
                 self.gpus_info.append({
-                    'timestamp': datetime.strptime(stat_list[0], "%Y/%m/%d %H:%M:%S.%f"),
+                    # 'timestamp': datetime.strptime(stat_list[0], "%Y/%m/%d %H:%M:%S.%f"),
+                    'timestamp': stat_list[0],
                     'name': stat_list[1],
                     'driver_version': stat_list[2],
                     'temperature': stat_list[3],
@@ -46,6 +47,13 @@ class ServerInfo(object):
                     'free_memory': stat_list[5],
                     'used_memory': stat_list[6]
                 })
+
+    @property
+    def json(self):
+        return {"host": self.host, "gpu_info": self.gpus_info}
+
+    def __str__(self):
+        return self.host, str(self.gpus_info)
 
 
 if __name__ == '__main__':
