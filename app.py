@@ -1,7 +1,7 @@
 from flask import Flask
 from flask import render_template
 
-import gpuinfo_bp
+from gpu_monitor import gpuinfo_bp
 
 app = Flask(__name__)
 
