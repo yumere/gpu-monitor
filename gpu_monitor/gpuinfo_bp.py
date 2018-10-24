@@ -16,6 +16,9 @@ def index():
 
 @gpuinfo.route("/refresh", methods=["GET"])
 def refresh():
+    for server in servers:
+        server.update()
+        
     return jsonify({
         'results': [server.json for server in servers]
     })
