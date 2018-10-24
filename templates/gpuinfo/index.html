@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <head>
@@ -54,7 +54,7 @@
                                 <div class="module-body">
                                     <ul class="unstyled widget">
                                         <li v-for="(info, index) in server.info">
-                                            <p><strong>No. <% index %></strong><span class="pull-right small muted"><span><% info.temperature %> &#8451; / </span> <span>CPU: <% info.utilization %> %</span> </span>
+                                            <p><strong><% info.name %></strong><span class="pull-right small muted"><span><% info.temperature %> &#8451; / </span> <span>CPU: <% info.utilization %> %</span> </span>
                                             </p>
                                             <div class="progress tight">
                                                 <div class="bar" v-bind:class="{'bar-success': info.color_class.success, 'bar': info.color_class.normal, 'bar-warning': info.color_class.warning, 'bar-danger': info.color_class.danger}" v-bind:style="{width: info.memory_percentage+'%'}"></div>
