@@ -1,3 +1,4 @@
+import re
 import json
 from datetime import datetime
 
@@ -16,7 +17,7 @@ def load_config(file):
 
 
 class ServerInfo(object):
-    command = "nvidia-smi --query-gpu=timestamp,name,driver_version,temperature.gpu,memory.total,memory.free,memory.used --format=csv"
+    command = "nvidia-smi --query-gpu=timestamp,name,driver_version,temperature.gpu,memory.total,memory.free,memory.used,utilization.gpu --format=csv"
 
     def __init__(self, host, user_id, user_pw):
         self.connection = Connection(host, user_id)
@@ -40,12 +41,27 @@ class ServerInfo(object):
                 timestamp = stat_list[0]
                 name = stat_list[1]
                 driver_version = stat_list[2]
-                temperature = int(stat_list[3])
-                total_memory = int(stat_list[4])
-                free_memory = int(stat_list[5])
-                used_memory = int(stat_list[6])
+                temperature = int(re.findall(r"([\d]+)", stat_list[3])[0])
+                total_memory = int(re.findall(r"([\d]+)", stat_list[4])[0])
+                free_memory = int(re.findall(r"([\d]+)", stat_list[5])[0])
+                used_memory = int(re.findall(r"([\d]+)", stat_list[6])[0])
+                utilization = int(re.findall(r"([\d]+)", stat_list[7])[0])
 
-                memory_percentage = used_memory // total_memory
+                memory_percentage = int(used_memory / total_memory * 100)
+                color_class = {
+                    'success': False,
+                    'normal': False,
+                    'warning': False,
+                    'danger': False
+                }
+                if memory_percentage < 30:
+                    color_class['success'] = True
+                elif memory_percentage < 50:
+                    color_class['normal'] = True
+                elif memory_percentage < 70:
+                    color_class['warning'] = True
+                else:
+                    color_class['danger'] = True
 
                 self.info.append({
                     'timestamp': timestamp,
@@ -55,7 +71,9 @@ class ServerInfo(object):
                     'total_memory': total_memory,
                     'free_memory': free_memory,
                     'used_memory': used_memory,
-                    'memory_percentage': memory_percentage
+                    'memory_percentage': memory_percentage,
+                    'color_class': color_class,
+                    'utilization': utilization
                 })
 
     @property
