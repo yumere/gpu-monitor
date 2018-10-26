@@ -85,7 +85,7 @@ class ServerInfo(object):
 
 
 if __name__ == '__main__':
-    user_id, user_pw, server_list = load_config("config.json")
+    user_id, user_pw, server_list = load_config("server_info.json")
     servers = [ServerInfo(host, user_id, user_pw) for host in server_list]
 
     for server in servers:

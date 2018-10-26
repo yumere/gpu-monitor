@@ -13,7 +13,7 @@ def index():
 
 @gpuinfo.route("/refresh", methods=["GET"])
 def refresh():
-    user_id, user_pw, server_list = load_config("config.json")
+    user_id, user_pw, server_list = load_config("server_info.json")
     servers = [ServerInfo(host, user_id, user_pw) for host in server_list]
 
     for server in servers:
