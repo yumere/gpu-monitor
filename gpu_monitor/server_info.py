@@ -1,6 +1,6 @@
-import re
 import json
-from datetime import datetime
+import re
+from collections import OrderedDict
 
 from fabric import Connection
 
@@ -17,7 +17,7 @@ def load_config(file):
 
 
 class ServerInfo(object):
-    command = "nvidia-smi --query-gpu=timestamp,name,driver_version,temperature.gpu,memory.total,memory.free,memory.used,utilization.gpu --format=csv"
+    command = "gpustat -ucp"
 
     def __init__(self, host, user_id, user_pw):
         self.connection = Connection(host, user_id)
@@ -34,58 +34,89 @@ class ServerInfo(object):
         self._parse(output.stdout)
 
     def _parse(self, gpu_stats: str):
-        self.info = []
-        for line in gpu_stats.split("\n"):
-            if line.startswith("20"):
-                stat_list = line.split(", ")
-                timestamp = stat_list[0]
-                name = stat_list[1]
-                driver_version = stat_list[2]
-                temperature = int(re.findall(r"([\d]+)", stat_list[3])[0])
-                total_memory = int(re.findall(r"([\d]+)", stat_list[4])[0])
-                free_memory = int(re.findall(r"([\d]+)", stat_list[5])[0])
-                used_memory = int(re.findall(r"([\d]+)", stat_list[6])[0])
-                utilization = int(re.findall(r"([\d]+)", stat_list[7])[0])
+        self.info = OrderedDict()
+        for i, line in enumerate(gpu_stats.split("\n")[:-1]):
+            if i == 0:
+                self.server_name = line.split(" ")[0]
+            else:
+                gpu_stats, stats, mem_stats, proc_stats = map(lambda x: x.strip(), line.split("|"))
+                gpu_no, gpu_name = re.match(r"\[(\d+)\] ([\s\S]+)", gpu_stats).groups()
+                temperature, cpu_usage = re.match(r"(\d+)[\S]+C[,\s]+(\d+)", stats).groups()
+                cur_mem, total_mem = re.match(r"(\d+)[\s/]+(\d+)", mem_stats).groups()
 
-                memory_percentage = int(used_memory / total_memory * 100)
-                color_class = {
+                procs = []
+                for user_id, proc_name, proc_id, mem_usage in re.findall(r"([\w]+):([\w\-\_]+)/(\d+)\((\d+)M\)", proc_stats):
+                    procs.append({
+                        'user_id': user_id,
+                        'proc_name': proc_name,
+                        'proc_id': int(proc_id),
+                        'mem_usage': int(mem_usage)
+                    })
+                mem_percentage = int(float(cur_mem) / float(total_mem) * 100)
+                mem_color_class = {
                     'success': False,
                     'normal': False,
                     'warning': False,
                     'danger': False
                 }
-                if memory_percentage < 30:
-                    color_class['success'] = True
-                elif memory_percentage < 50:
-                    color_class['normal'] = True
-                elif memory_percentage < 70:
-                    color_class['warning'] = True
+                if mem_percentage < 30:
+                    mem_color_class['success'] = True
+                elif mem_percentage < 50:
+                    mem_color_class['normal'] = True
+                elif mem_percentage < 70:
+                    mem_color_class['warning'] = True
                 else:
-                    color_class['danger'] = True
+                    mem_color_class['danger'] = True
 
-                self.info.append({
-                    'timestamp': timestamp,
-                    'name': name,
-                    'driver_version': driver_version,
-                    'temperature': temperature,
-                    'total_memory': total_memory,
-                    'free_memory': free_memory,
-                    'used_memory': used_memory,
-                    'memory_percentage': memory_percentage,
-                    'color_class': color_class,
-                    'utilization': utilization
-                })
+                cpu_color_class = {
+                    'success': False,
+                    'normal': False,
+                    'warning': False,
+                    'danger': False
+                }
+
+                cpu_usage = int(cpu_usage)
+                if cpu_usage < 30:
+                    cpu_color_class['success'] = True
+                elif cpu_usage < 50:
+                    cpu_color_class['normal'] = True
+                elif cpu_usage < 70:
+                    cpu_color_class['warning'] = True
+                else:
+                    cpu_color_class['danger'] = True
+
+                self.info[gpu_no] = {
+                    'gpu_no': int(gpu_no),
+                    'gpu_name': gpu_name,
+                    'temperature': int(temperature),
+                    'cpu_usage': cpu_usage,
+                    'cur_mem': int(cur_mem),
+                    'total_mem': int(total_mem),
+                    'mem_percentage': mem_percentage,
+                    'mem_color_class': mem_color_class,
+                    'cpu_color_class': cpu_color_class,
+                    'procs': procs
+                }
 
     @property
     def json(self):
-        return {"host": self.host, "info": self.info}
+        return {"host": self.host, "server_name": self.server_name, "info": self.info}
 
     def __str__(self):
         return self.host, str(self.info)
 
 
+def install_gpustat(host, user_id, user_pw):
+    connection = Connection(host, user_id)
+    connection.connect_kwargs.password = user_pw
+    output = connection.run("pip install gpustat")
+    print(output.stdout)
+
+
 if __name__ == '__main__':
     user_id, user_pw, server_list = load_config("server_info.json")
+    # for host in server_list:
+    #     install_gpustat(host, user_id, user_pw)
     servers = [ServerInfo(host, user_id, user_pw) for host in server_list]
 
     for server in servers:
