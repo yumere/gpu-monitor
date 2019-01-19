@@ -28,10 +28,11 @@ class ServerInfo(object):
         self.update()
 
     def update(self):
-        output = self.connection.run(self.command)
-
-        # TODO: exit code exception or no gpu exception
-        self._parse(output.stdout)
+        try:
+            output = self.connection.run(self.command)
+            self._parse(output.stdout)
+        except Exception as e:
+            raise Exception(e)
 
     def _parse(self, gpu_stats: str):
         self.info = OrderedDict()
