@@ -96,8 +96,7 @@
         data: {
             server_list: [],
             all_loading: false,
-            gpu_info: {},
-            test: [1,2,3,4,]
+            gpu_info: {}
         },
 
         created: function() {
@@ -145,7 +144,9 @@
                     },
                     complete: () => {
                         this.gpu_info[host]["loading"] = false;
-                        this.$forceUpdate();
+                        // To re-render the component in the v-for of server_list
+                        // If run this code, the javascript creates new array having different memory address
+                        this.server_list = this.server_list.slice();
                     }
                 });
 
