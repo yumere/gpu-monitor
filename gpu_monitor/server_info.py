@@ -20,19 +20,21 @@ class ServerInfo(object):
     command = "gpustat -ucp"
 
     def __init__(self, host, user_id, user_pw):
-        self.connection = Connection(host, user_id)
-        self.connection.connect_kwargs.password = user_pw
         self.host = host
+        self.user_id = user_id
+        self.user_pw = user_pw
         self.info = []
 
         self.update()
 
     def update(self):
-        try:
-            output = self.connection.run(self.command)
-            self._parse(output.stdout)
-        except Exception as e:
-            raise Exception(e)
+        with Connection(self.host, self.user_id) as conn:
+            conn.connect_kwargs.password = self.user_pw
+            try:
+                output = conn.run(self.command)
+                self._parse(output.stdout)
+            except Exception as e:
+                pass
 
     def _parse(self, gpu_stats: str):
         self.info = OrderedDict()
@@ -105,6 +107,9 @@ class ServerInfo(object):
 
     def __str__(self):
         return self.host, str(self.info)
+
+    def __eq__(self, other):
+        return other == self.host
 
 
 def install_gpustat(host, user_id, user_pw):

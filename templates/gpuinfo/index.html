@@ -96,7 +96,8 @@
         data: {
             server_list: [],
             all_loading: false,
-            gpu_info: {}
+            gpu_info: {},
+            users: []
         },
 
         created: function() {
@@ -149,7 +150,14 @@
                         this.server_list = this.server_list.slice();
                     }
                 });
+            },
 
+            getGPUNumByUser: function() {
+                this.server_list.forEach((host) => {
+                    for (const [key, value] of Object.entries(this.gpu_info[host].info)) {
+                        console.log(value);
+                    }
+                });
             }
         },
     });

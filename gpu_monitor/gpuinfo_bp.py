@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify
 from flask import render_template
-
-from gpu_monitor.server_info import ServerInfo, load_config
+from app import servers, server_list
 
 gpuinfo = Blueprint("gpuinfo", "gpuinfo", url_prefix="/gpuinfo")
 
@@ -13,15 +12,17 @@ def index():
 
 @gpuinfo.route("/<string:host>", methods=["GET"])
 def get_server_info(host: str):
-    user_id, user_pw, server_list = load_config("server_info.json")
-    try:
-        server = ServerInfo(host, user_id, user_pw)
-        return jsonify({
-            "success": True,
-            "server_info": server.json
-        }
-)
-    except Exception:
+    global server_list
+    global servers
+
+    for server in servers:
+        if host == server:
+            return jsonify({
+                "success": True,
+                "server_info": server.json
+            })
+
+    else:
         return jsonify({
             "success": False
         })
@@ -29,7 +30,7 @@ def get_server_info(host: str):
 
 @gpuinfo.route("/hosts", methods=["GET"])
 def get_host_list():
-    user_id, user_pw, server_list = load_config("server_info.json")
+    global server_list
     return jsonify({
         "server_list": server_list
     })
@@ -37,9 +38,8 @@ def get_host_list():
 
 @gpuinfo.route("/refresh", methods=["GET"])
 def refresh():
-    user_id, user_pw, server_list = load_config("server_info.json")
-    servers = [ServerInfo(host, user_id, user_pw) for host in server_list]
-
+    global servers
+    global server_list
     for server in servers:
         server.update()
 
